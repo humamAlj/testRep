@@ -7,15 +7,16 @@ MainWindow::MainWindow(QWidget *parent)
   ui->setupUi(this);
 
   /////***********************//////
-  // QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
-  // QList<QSslCertificate> caCertificates = sslConfig.caCertificates();
-  // caCertificates.append(
-  //     QSslCertificate::fromPath("../zertifikat/enders-pro.pem"));
-  // sslConfig.setCaCertificates(caCertificates);
-  // QSslConfiguration::setDefaultConfiguration(sslConfig);
+  QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
+  QList<QSslCertificate> caCertificates = sslConfig.caCertificates();
+  caCertificates.append(
+      QSslCertificate::fromPath("../zertifikat/enders-pro.pem"));
+  sslConfig.setCaCertificates(caCertificates);
+  QSslConfiguration::setDefaultConfiguration(sslConfig);
   //////////************************//////////////
 
-
+  connect(networkManager, &QNetworkAccessManager::finished, this,
+          &MainWindow::buildStatusReceived);
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -28,17 +29,15 @@ void MainWindow::on_startBtn_clicked() {
 }
 
 void MainWindow::startJenkinsJob(const QString &jobName) {
-
-  QString url = ui->URL_line->text().append("/job/%1/").arg(jobName);
+  QString url = ui->URL_line->text().append("%1/").arg(jobName);
   QNetworkRequest request((QUrl(url)));
-  request.setRawHeader("Authorization")
- // QSslConfiguration sslConfig = request.sslConfiguration();
-  //sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
-  //request.setSslConfiguration(sslConfig);
-    QString logInData = ui->username_line->text() + ":" +
-    ui->passW_line->text();
-   QByteArray authData = "Basic" + logInData.toLocal8Bit().toBase64();
-   request.setRawHeader("Authorization", authData);
+  QSslConfiguration sslConfig = request.sslConfiguration();
+  sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
+  request.setSslConfiguration(sslConfig);
+  //  QString logInData = ui->username_line->text() + ":" +
+  //  ui->passW_line->text();
+  // QByteArray authData = "Basic" + logInData.toLocal8Bit().toBase64();
+  // request.setRawHeader("Authorization", authData);
   QByteArray data;
   QNetworkReply *reply = networkManager->post(request, data); // QByteArray()
   qDebug() << reply->errorString() << "\n";
@@ -51,7 +50,7 @@ void MainWindow::getJenkinsJobStatus(const QString &jobName) {
 }
 
 void MainWindow::buildStatusReceived(QNetworkReply *reply) {
-  //checkServerCertificate();
+  checkServerCertificate();
   qDebug() << reply->errorString() << "\n";
   if (reply->error() == QNetworkReply::NoError) {
     QByteArray response = reply->readAll();
